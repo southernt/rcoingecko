@@ -33,21 +33,60 @@ You can install the development version of rcoingecko from [GitHub](https://gith
 devtools::install_github("southernt/rcoingecko")
 ```
 
-## Example
+## Examples
 
 ```{r example}
 library(rcoingecko)
-## basic example code
 ```
 
-```{r stablecoins, message=FALSE}
+Query available cryptocurrencies and quote crypto/fiat currencies
+```{r coins_vs_currencies, message = FALSE}
+## table
+cg_supported_coins()
+
+## vector
+cg_supported_vs_currencies()
+```
+
+Query available exchanges.
+```{r exchanges, message = FALSE}
+cg_exchanges()
+```
+
+Query available crytocurrency/blockchain platforms.
+```{r asset_platforms, message = FALSE}
+cg_asset_platforms()
+```
+
+Query crytocurrency categories.
+```{r categories, message = FALSE}
+cg_categories()
+```
+
+Plot crytocurrency/blockchain platform market proportion.
+```{r crypto_platforms, message = FALSE}
+gg_crypto_platform_prop()
+```
+
+
+Query current crytocurrency market summary.
+```{r coin_markets_summ, message = FALSE}
+cg_coin_markets_summ()
+```
+
+
+
+```{r coin_snapshot, message = FALSE, eval = FALSE, include = FALSE}
+# Query coin summary snapshot
+# cg_coin_snapshot(coin = "bitcoin")
+```
+
+
+```{r stablecoins, message = FALSE}
 gg_stablecoins_pie()
 ```
 
 
-```{r crypto_platforms, message=FALSE}
-gg_crypto_platform_prop()
-```
 
 
 --------
