@@ -10,7 +10,7 @@ cg_supported_vs_currencies <- function() {
 
   res <- httr::GET(cg_api_url("simple/supported_vs_currencies"))
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   jsonlite::fromJSON(rawToChar(res$content))
 }
@@ -30,7 +30,7 @@ cg_asset_platforms <- function() {
 
   res <- httr::GET(cg_api_url("asset_platforms"))
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   dat <- jsonlite::fromJSON(rawToChar(res$content))
   if (!inherits(dat, "data.frame")) return(dat$error)
@@ -54,7 +54,7 @@ cg_supported_coins <- function(){
   cg_api_url("coins/list")
   res <- httr::GET(cg_api_url("coins/list"))
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   dat <- jsonlite::fromJSON(rawToChar(res$content))
   if (!inherits(dat, "data.frame")) return(dat$error)
@@ -80,7 +80,7 @@ cg_exchanges <- function() {
 
   res <- httr::GET(cg_api_url("exchanges"))
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   dplyr::as_tibble(jsonlite::fromJSON(rawToChar(res$content)))
 }
@@ -99,7 +99,7 @@ cg_categories <- function() {
 
   res <- httr::GET(cg_api_url("coins/categories"))
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   jsonlite::fromJSON(rawToChar(res$content)) |>
     dplyr::mutate_if(is.character, ~ ifelse(.x == "", NA_character_, .x)) |>
@@ -154,9 +154,10 @@ cg_market_chart_range <- function(
     }
   }
 
-  res <- httr::GET(cg_api_url("coins/bitcoin/market_chart/range"), query = q_ls)
+  api_url <- cg_api_url(file.path("coins", coin, "market_chart/range"))
+  res <- httr::GET(api_url, query = q_ls)
   if (res$status_code != 200) {
-    jsonlite::fromJSON(rawToChar(res$content))$error
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
   }
   dat <- jsonlite::fromJSON(rawToChar(res$content), simplifyDataFrame = FALSE)
   setNames(dat, c("price","market_cap","volume")) |>
@@ -166,6 +167,116 @@ cg_market_chart_range <- function(
     dplyr::as_tibble()
 }
 # cg_market_chart_range()
+
+
+# "coins/bitcoin/history?date=30-12-2017"
+#' Query for OHLC coin data
+#'
+#' @param coin coin to query for
+#' @param date date of snapshot to query for
+#'
+#' @return data frame
+#'
+#' @export
+cg_coin_snapshot <- function(
+  coin = "bitcoin",
+  date = format(Sys.Date(), "%d-%m-%Y")
+) {
+  require(httr)
+  require(jsonlite)
+  require(dplyr)
+  require(tidyr)
+  require(purrr)
+
+  stopifnot(inherits(coin, "character"))
+  q_ls <- as.list(match.call())[-1]
+  q_ls <- q_ls[setdiff(names(q_ls), "coin")]
+  if (missing(date)) q_ls$date <- date
+  q_ls <- lapply(q_ls, function(x) {
+    if (inherits(x, "name")) return(eval(x))
+    x
+  })
+
+  api_url <- cg_api_url(file.path("coins", coin, "history"))
+  res <- httr::GET(api_url, query = q_ls)
+  if (res$status_code != 200) {
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
+  }
+  dat <- jsonlite::fromJSON(rawToChar(res$content))
+  ## process data
+  df_community_data <- dat[["community_data"]] |>
+    lapply(function(x) as.numeric(ifelse(is.null(x), NA_real_, x))) |>
+    dplyr::as_tibble() |>
+    tidyr::pivot_longer(everything()) |>
+    dplyr::filter(!is.na(value))|>
+    dplyr::mutate(ctgy = "community_data")
+  df_developer_data <- dat[["developer_data"]] |>
+    lapply(function(x) as.numeric(ifelse(is.null(x), NA_real_, x))) |>
+    dplyr::as_tibble() |>
+    tidyr::pivot_longer(everything()) |>
+    dplyr::filter(!is.na(value))|>
+    dplyr::mutate(ctgy = "developer_data")
+  df_public_interest_stats <- dat[["public_interest_stats"]] |>
+    lapply(function(x) as.numeric(ifelse(is.null(x), NA_real_, x))) |>
+    dplyr::as_tibble() |>
+    tidyr::pivot_longer(everything()) |>
+    dplyr::filter(!is.na(value))|>
+    dplyr::mutate(ctgy = "public_interest_stats")
+  list(df_community_data, df_developer_data, df_public_interest_stats) |>
+    dplyr::bind_rows() |>
+    dplyr::transmute(coin = coin, date = lubridate::dmy(date), ctgy, name, value)
+}
+
+
+#' Query for OHLC coin data
+#'
+#' @param coin coin to query for
+#' @param vs_currency quote currency
+#' @param day_ct count of days of history to query for
+#'
+#' @return `data.frame`
+#'
+#' @details Candle's body:
+#' * 1 - 2 days: 30 minutes
+#' * 3 - 30 days: 4 hours
+#' * 31 and before: 4 days
+#'
+#' @export
+cg_ohlc <- function(
+  coin = "bitcoin",
+  vs_currency = "usd",
+  day_ct = 30
+) {
+  require(httr)
+  require(jsonlite)
+  require(dplyr)
+  require(purrr)
+
+  stopifnot(inherits(coin, "character"))
+  q_ls <- as.list(match.call())[-1]
+  q_ls <- q_ls[setdiff(names(q_ls), "coin")]
+  if (missing(vs_currency)) q_ls$vs_currency <- vs_currency
+  if (missing(day_ct)) q_ls$day_ct <- day_ct
+  names(q_ls) <- dplyr::case_when(
+    names(q_ls) == "day_ct" ~ "days",
+    TRUE ~ names(q_ls)
+  )
+  q_ls <- lapply(q_ls, function(x) {
+    if (inherits(x, "name")) return(eval(x))
+    x
+  })
+
+  api_url <- cg_api_url(file.path("coins", coin, "ohlc"))
+  res <- httr::GET(api_url, query = q_ls)
+  if (res$status_code != 200) {
+    return(jsonlite::fromJSON(rawToChar(res$content))$error)
+  }
+  dat <- jsonlite::fromJSON(rawToChar(res$content))
+  as.data.frame(dat) |>
+    setNames(c("tm","open","high","low","close")) |>
+    dplyr::mutate(tm = millisec_to_datetime(tm)) |>
+    dplyr::as_tibble()
+}
 
 
 #' Query for market summary data
