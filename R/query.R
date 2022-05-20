@@ -373,35 +373,3 @@ cg_coin_markets_summ <- function(
   dat
 }
 
-
-#' Query for stablecoin data and plot pie chart of market dominance
-#'
-#' @return `data.frame`
-#'
-#' @export
-gg_stablecoins_pie <- function() {
-  require(dplyr)
-  require(ggplot2)
-
-  cg_coin_markets_summ(category = "stablecoins") |>
-    # filter(market_cap > 1E9) |>
-    mutate(
-      name = case_when(
-        market_cap < 1E9 ~ "Coins w/ <$1B Market Cap", # c("usdt","udsc","busd","dai")
-        TRUE ~ name
-      )
-    ) |>
-    group_by(name) |>
-    summarise(market_cap = sum(market_cap, na.rm = TRUE), .groups = "drop") |>
-    mutate(
-      market_cap_prop = market_cap / sum(market_cap),
-      name = reorder(factor(name), desc(market_cap))
-    ) |>
-    ggplot(aes(x = "", y = market_cap_prop, fill = name)) +
-    geom_bar(stat = "identity", width = 1, color = "white") +
-    coord_polar("y", start = 0) +
-    scale_fill_viridis_d(direction = -1, guide = guide_legend()) +
-    labs(fill = "Coin") +
-    theme_void() +
-    theme(legend.position = "top")
-}

@@ -9,17 +9,17 @@ Authors@R:
 Description: This package provides functions for querying data from the CoinGecko API
 License: file LICENSE
 BugReports: https://github.com/southernt/rcoingecko/issues
-Depends: 
-    R (>= 4.0),
-    dplyr,
-    lubridate,
-    purrr,
-    httr,
-    jsonlite
+Depends: R (>= 4.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
 Imports: 
-    thelpers,
-    ggplot2
+    dplyr,
+    lubridate,
+    purrr,
+    httr,
+    jsonlite,
+    ggplot2,
+    stringr,
+    tidyr

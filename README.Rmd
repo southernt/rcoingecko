@@ -1,0 +1,58 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# rcoingecko <img src="man/figures/logo.png" align="right" height="139" />
+
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/rcoingecko)](https://CRAN.R-project.org/package=rcoingecko)
+<!-- badges: end -->
+
+R Package for Querying Cryptocurrency Data from the [CoinGecko API](https://www.coingecko.com/api/documentations/v3)
+
+--------
+
+## Installation
+
+You can install the development version of rcoingecko from [GitHub](https://github.com/southernt/rcoingecko) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("southernt/rcoingecko")
+```
+
+## Example
+
+```{r example}
+library(rcoingecko)
+## basic example code
+```
+
+```{r stablecoins, message=FALSE}
+gg_stablecoins_pie()
+```
+
+
+```{r crypto_platforms, message=FALSE}
+gg_crypto_platform_prop()
+```
+
+
+--------
+
+## Existing Packages
+
+- [CoinGeckoR](https://github.com/SamBuckberry/CoinGeckoR)
+- [geckor](https://github.com/next-game-solutions/geckor)
